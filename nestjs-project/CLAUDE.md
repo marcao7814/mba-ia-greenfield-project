@@ -32,14 +32,18 @@ docker compose exec nestjs-api npm run start:dev
 ```
 
 Services:
-- `nestjs-api` — NestJS API, port `3000`
+- `nestjs-api` — NestJS API, container port `3000` mapped to host port `3001` (host `3000` may be occupied by another local service — always verify via `docker compose port nestjs-api 3000` rather than assuming)
+- `video-worker` — background video processing worker (FFmpeg), no exposed port — consumes the `video-processing` BullMQ queue
 - `db` — PostgreSQL 17, port `5432`, database `streamtube`, user/password `streamtube`
+- `mailpit` — SMTP capture for local email testing, SMTP port `1025`, Web UI port `8025`
+- `minio` — S3-compatible object storage, API port `9000`, console port `9001`, user/password `streamtube`/`streamtube123`
+- `redis` — BullMQ broker, port `6379`
 
 All verification and teardown commands run on the **host machine**:
 
 ```bash
 # Verify NestJS is running (expect 200 + "Hello World!")
-curl http://localhost:3000
+curl http://localhost:3001
 
 # Verify PostgreSQL is ready (runs inside the db container)
 docker compose exec db pg_isready -U streamtube
@@ -79,7 +83,7 @@ npm run format                           # Prettier formatting
 docker compose ps
 docker compose logs nestjs-api
 docker compose exec db pg_isready -U streamtube
-curl http://localhost:3000
+curl http://localhost:3001
 ```
 
 ### Test execution
