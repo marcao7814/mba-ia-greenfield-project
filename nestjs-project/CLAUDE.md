@@ -163,3 +163,32 @@ NestJS with standard module structure. Source lives in `src/`, compiled output i
 ## REST Conventions
 
 This is a RESTful API. All endpoints must follow standard REST conventions — correct HTTP methods, proper status codes, plural resource nouns, and consistent URL structure. Details are enforced via rules on controller files.
+
+## Videos Module (Phase 03)
+
+Upload, background processing, and delivery of videos, scoped to the authenticated user's channel. Module lives in `src/videos/` (entity, repository, service, controller, DTOs) plus `src/videos/workers/video-processing.processor.ts` (the FFmpeg consumer), `src/storage/` (S3/MinIO client), and `src/queue/` (BullMQ registration). Decisions and full contracts: `docs/decisions/technical-decisions-phase-03-videos.md` and `docs/phases/phase-03-videos/phase-03-videos.md`.
+
+### Endpoints (all under `/channels/:channelId/videos`, JWT + `OwnedChannelGuard`)
+
+| Method & path | Purpose |
+|---|---|
+| `POST /uploads` | Creates a draft video, starts an S3/MinIO multipart upload, returns `{ videoId, slug, uploadId }` |
+| `GET /uploads/:uploadId/parts/:partNumber` | Presigned URL for uploading one multipart part directly to storage |
+| `POST /:videoId/uploads/complete` | Finalizes the multipart upload, validates the real size against the declared `fileSizeBytes`, transitions the video to `processing`, enqueues the `video.process` job |
+| `GET /:videoId` | Current video status (`draft` \| `processing` \| `ready` \| `error`) — safe to poll |
+| `GET /:videoId/stream` | Presigned GET URL (1h TTL) that supports HTTP `Range` requests (`206 Partial Content`) |
+| `GET /:videoId/download` | Presigned GET URL (5min TTL) for the full file — only when `status = ready` |
+
+The client never sends video bytes through the API — files go straight to MinIO/S3 via the presigned part URLs, which is how a 10GB upload doesn't block the API process.
+
+### Storage (`src/storage/storage.service.ts`)
+
+`StorageService` wraps an `S3Client` (`forcePathStyle: true`, MinIO-compatible) and exposes multipart upload (`createMultipartUpload` / `presignUploadPart` / `completeMultipartUpload`), `headObject`, `createPresignedGetUrl`, `uploadObject`, and `downloadObjectToFile` (used by the worker to pull the source file locally for FFmpeg). Buckets: `videos-source` and `videos-thumbnails` (env `STORAGE_BUCKET_SOURCE` / `STORAGE_BUCKET_THUMBNAILS`), auto-created on module init. Object keys are scoped by `videoId`, never by `channelId` (`{videoId}/source`, `{videoId}/thumbnail.jpg`).
+
+### Queue and Worker
+
+BullMQ queue `video-processing` (`src/queue/queue.module.ts`, Redis-backed). `VideosService.completeUpload` enqueues a `video.process` job (`{ videoId, storageKey }`, `jobId: videoId` for producer-side dedup, 3 attempts with exponential backoff). The Video Worker is a separate process (`src/worker.main.ts` / `src/worker.module.ts`, run via `npm run start:worker` / `start:worker:dev`, `video-worker` Compose service) — it has no HTTP server, only consumes the queue. `VideoProcessingProcessor` (`src/videos/workers/video-processing.processor.ts`) downloads the source object to a temp file, extracts duration/codec/resolution/bitrate via `ffprobe`, generates a thumbnail at 10% duration via `ffmpeg`, uploads the thumbnail, and marks the video `ready` — or `error` (with a closed `error_reason` code: `PROCESSING_FAILED`, `TIMEOUT`) on failure. FFmpeg/ffprobe are installed in `Dockerfile.dev`; timeout is `FFMPEG_TIMEOUT_MS` (default 120000ms).
+
+### Status lifecycle
+
+`draft` → `processing` (atomic, conditional `UPDATE ... WHERE status = 'draft'`, guards against double-completion) → `ready` | `error`. A declared/actual size mismatch at completion reverts the video to `draft` instead of advancing it.

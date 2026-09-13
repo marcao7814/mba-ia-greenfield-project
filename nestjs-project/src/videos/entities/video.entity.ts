@@ -51,6 +51,17 @@ export class Video {
   @Column({ type: 'varchar', nullable: true })
   upload_id: string | null;
 
+  @Column({
+    type: 'bigint',
+    nullable: true,
+    transformer: {
+      to: (value?: number | null) => value,
+      from: (value?: string | null) =>
+        value === null || value === undefined ? null : parseInt(value, 10),
+    },
+  })
+  declared_size_bytes: number | null;
+
   @Column({ type: 'int', nullable: true })
   duration_seconds: number | null;
 

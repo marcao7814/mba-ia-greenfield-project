@@ -29,4 +29,5 @@ export const envValidationSchema = Joi.object({
   STORAGE_BUCKET_THUMBNAILS: Joi.string().default('videos-thumbnails'),
   REDIS_HOST: Joi.string().default('redis'),
   REDIS_PORT: Joi.number().default(6379),
+  FFMPEG_TIMEOUT_MS: Joi.number().default(120000),
 });

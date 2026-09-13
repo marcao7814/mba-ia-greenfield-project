@@ -208,6 +208,8 @@ async function generateSlug(): Promise<string> {
 // Option 2 — pin nanoid@3.x (last CJS-compatible major) — simpler call sites, older major.
 ```
 
+**Resolved at `implement` time (SI-03.5):** Option 2 — pinned `nanoid` to `^3.3.19` in `package.json`. The `implement` skeleton commit had installed `^5.1.16` despite this note; it failed at test/runtime with `SyntaxError: Cannot use import statement outside a module` (Jest, CommonJS) — confirming the exact failure predicted above — and was corrected during SI-03.5/03.6 implementation.
+
 ### Custom alphabet / length
 
 ```typescript

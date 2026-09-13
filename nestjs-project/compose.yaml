@@ -21,6 +21,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
+    command: npm run start:worker:dev
     volumes:
       - .:/home/node/app
     depends_on:

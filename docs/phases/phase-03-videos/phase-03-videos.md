@@ -355,6 +355,7 @@ Entregar upload de vídeo de até 10GB sem travar a API (multipart via URLs pré
 | storage_key | varchar | nullable | Chave do arquivo de vídeo — escopada por `videoId`, nunca por `channelId` (`phase-03-videos/TD-02`) |
 | thumbnail_key | varchar | nullable | Chave da thumbnail |
 | upload_id | varchar | nullable | S3 Multipart `UploadId` — limpo após `completeMultipartUpload` |
+| declared_size_bytes | bigint | nullable | `fileSizeBytes` declarado em SI-03.6; comparado contra `HeadObject` real em SI-03.7 (`UPLOAD_SIZE_MISMATCH`) — adicionado durante a implementação (SI-03.6/03.7), não constava no rascunho original do plano |
 | duration_seconds | int | nullable | Populado pelo worker (`phase-03-videos/TD-04`) |
 | metadata | jsonb | nullable | codec, width, height, bitrate |
 | error_reason | varchar | nullable | Código fechado (nunca mensagem crua de exceção) |
@@ -526,6 +527,15 @@ SI-03.11 — depends on SI-03.6, SI-03.7, SI-03.10 (decora endpoints já existen
 ```
 
 Ordem de implementação linearizada: SI-03.1 → SI-03.2, SI-03.3, SI-03.4 (paralelo) → SI-03.5 → SI-03.6 → SI-03.7 → SI-03.8 → SI-03.9, SI-03.10 (paralelo) → SI-03.11 → SI-03.12 (pode rodar em paralelo com 03.9-03.11, depende só de 03.2)
+
+## Implementation Notes (desvios registrados durante o `implement`)
+
+Pequenos ajustes feitos durante a implementação, mantidos aqui para rastreabilidade (por que o código diverge da letra de uma technical action, mas não do contrato/API):
+
+1. **`declared_size_bytes`** foi adicionado ao `Video` (ver Data Model) — necessário para `UPLOAD_SIZE_MISMATCH` (SI-03.7) comparar o tamanho declarado em SI-03.6 contra o `HeadObject` real; não estava na tabela original do plano.
+2. **`GET /channels/:channelId/videos/uploads/:uploadId/parts/:partNumber`** é resolvido por `(channelId, uploadId)` via `VideosRepository.findByUploadIdScopedToChannel`, não por `videoId` — a Technical Action de SI-03.6 menciona um parâmetro `videoId`, mas o contrato de API (fonte da verdade, seção "API Contracts") não inclui `:videoId` nessa rota.
+3. **Rate limiting (SI-03.11)** é aplicado via `@Throttle()` por rota no `VideosController`, reaproveitando o `ThrottlerGuard` global já registrado como `APP_GUARD` em `AuthModule`. Não foi criado um segundo `ThrottlerModule.forRoot()` nem um segundo `APP_GUARD` em `VideosModule` como a Technical Action #1 sugeria — registrar dois guards globais de throttling causaria dupla contagem/config conflitante. O efeito (limites diferentes por endpoint, incluindo um limite mais permissivo em `GET :videoId`) é o mesmo.
+4. **`JwtAuthGuard` não é reaplicado** no `VideosController` — ele já é global (`APP_GUARD` em `AuthModule`), e `.claude/rules/nestjs-controllers.md` proíbe reaplicá-lo localmente. Apenas `OwnedChannelGuard` é declarado via `@UseGuards`.
 
 ## Deliverables
 

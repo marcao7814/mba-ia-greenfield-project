@@ -6,5 +6,6 @@ export default registerAs('storage', () => ({
   accessKey: process.env.STORAGE_ACCESS_KEY,
   secretKey: process.env.STORAGE_SECRET_KEY,
   bucketSource: process.env.STORAGE_BUCKET_SOURCE || 'videos-source',
-  bucketThumbnails: process.env.STORAGE_BUCKET_THUMBNAILS || 'videos-thumbnails',
+  bucketThumbnails:
+    process.env.STORAGE_BUCKET_THUMBNAILS || 'videos-thumbnails',
 }));

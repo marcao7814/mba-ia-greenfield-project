@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import { pipeline } from 'stream/promises';
+import type { Readable } from 'stream';
 import {
   CompleteMultipartUploadCommand,
   CreateBucketCommand,
@@ -107,7 +110,10 @@ export class StorageService implements OnModuleInit {
     );
   }
 
-  async headObject(bucket: string, key: string): Promise<{ sizeBytes: number }> {
+  async headObject(
+    bucket: string,
+    key: string,
+  ): Promise<{ sizeBytes: number }> {
     const result = await this.client.send(
       new HeadObjectCommand({ Bucket: bucket, Key: key }),
     );
@@ -136,6 +142,20 @@ export class StorageService implements OnModuleInit {
         Body: body,
         ContentType: contentType,
       }),
+    );
+  }
+
+  async downloadObjectToFile(
+    bucket: string,
+    key: string,
+    destinationPath: string,
+  ): Promise<void> {
+    const result = await this.client.send(
+      new GetObjectCommand({ Bucket: bucket, Key: key }),
+    );
+    await pipeline(
+      result.Body as Readable,
+      fs.createWriteStream(destinationPath),
     );
   }
 

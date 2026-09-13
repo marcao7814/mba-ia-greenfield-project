@@ -8,10 +8,13 @@ import mailConfig from './config/mail.config';
 import queueConfig from './config/queue.config';
 import storageConfig from './config/storage.config';
 import swaggerConfig from './config/swagger.config';
+import videoProcessingConfig from './config/video-processing.config';
 import { envValidationSchema } from './config/env.validation';
 import { QueueModule } from './queue/queue.module';
 import { StorageModule } from './storage/storage.module';
+import { UsersModule } from './users/users.module';
 import { VideosModule } from './videos/videos.module';
+import { VideoProcessingProcessor } from './videos/workers/video-processing.processor';
 
 @Module({
   imports: [
@@ -25,6 +28,7 @@ import { VideosModule } from './videos/videos.module';
         queueConfig,
         storageConfig,
         swaggerConfig,
+        videoProcessingConfig,
       ],
       validationSchema: envValidationSchema,
       validationOptions: { allowUnknown: true, abortEarly: false },
@@ -45,7 +49,9 @@ import { VideosModule } from './videos/videos.module';
     }),
     QueueModule,
     StorageModule,
+    UsersModule,
     VideosModule,
   ],
+  providers: [VideoProcessingProcessor],
 })
 export class WorkerModule {}
