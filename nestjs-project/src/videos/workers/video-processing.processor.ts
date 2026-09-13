@@ -84,7 +84,7 @@ export class VideoProcessingProcessor extends WorkerHost {
       ffmpeg.ffprobe(localPath, (err, data) => {
         clearTimeout(timer);
         if (err) {
-          reject(err);
+          reject(err instanceof Error ? err : new Error(String(err)));
           return;
         }
 
@@ -98,9 +98,7 @@ export class VideoProcessingProcessor extends WorkerHost {
             codec: videoStream?.codec_name ?? null,
             width: videoStream?.width ?? null,
             height: videoStream?.height ?? null,
-            bitrate: data.format.bit_rate
-              ? Number(data.format.bit_rate)
-              : null,
+            bitrate: data.format.bit_rate ? Number(data.format.bit_rate) : null,
           },
         });
       });

@@ -5,6 +5,7 @@ import {
   VideoNotFoundException,
   VideoNotReadyException,
 } from '../common/exceptions/domain.exception';
+import type { Channel } from '../channels/entities/channel.entity';
 import { Video, VideoStatus } from './entities/video.entity';
 import {
   DOWNLOAD_URL_TTL_SECONDS,
@@ -29,7 +30,7 @@ function makeVideo(overrides: Partial<Video> = {}): Video {
     error_reason: null,
     created_at: new Date(),
     updated_at: new Date(),
-    channel: undefined as any,
+    channel: undefined as unknown as Channel,
     ...overrides,
   };
 }

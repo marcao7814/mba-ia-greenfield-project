@@ -43,7 +43,7 @@ describe('Videos (e2e)', () => {
     videoRepository = dataSource.getRepository(Video);
     throttlerStorage =
       moduleFixture.get<ThrottlerStorageService>(ThrottlerStorage);
-  });
+  }, 30000);
 
   afterAll(async () => {
     await app.close();

@@ -101,11 +101,7 @@ export class VideosController {
     @Param('uploadId') uploadId: string,
     @Param('partNumber', ParseIntPipe) partNumber: number,
   ): Promise<{ url: string; expiresInSeconds: number }> {
-    return this.videosService.getUploadPartUrl(
-      channelId,
-      uploadId,
-      partNumber,
-    );
+    return this.videosService.getUploadPartUrl(channelId, uploadId, partNumber);
   }
 
   @Post(':videoId/uploads/complete')

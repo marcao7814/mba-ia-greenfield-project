@@ -14,10 +14,7 @@ async function uploadSinglePartObject(
   key: string,
   body: Buffer,
 ): Promise<void> {
-  const { uploadId } = await storageService.createMultipartUpload(
-    bucket,
-    key,
-  );
+  const { uploadId } = await storageService.createMultipartUpload(bucket, key);
   const { url } = await storageService.presignUploadPart(
     bucket,
     key,

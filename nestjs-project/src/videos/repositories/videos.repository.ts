@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import type { DatabaseError } from 'pg-protocol/dist/messages';
 import { QueryFailedError, Repository } from 'typeorm';
+import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { customAlphabet } from 'nanoid';
 import { Video, VideoStatus } from '../entities/video.entity';
 
@@ -18,11 +20,11 @@ const generateSlug = customAlphabet(
 
 function isPgUniqueViolationOnColumn(err: unknown, column: string): boolean {
   if (!(err instanceof QueryFailedError)) return false;
-  const e = err as any;
+  const driverError = err.driverError as DatabaseError;
   return (
-    e.code === PG_UNIQUE_VIOLATION &&
-    typeof e.detail === 'string' &&
-    e.detail.includes(column)
+    driverError.code === PG_UNIQUE_VIOLATION &&
+    typeof driverError.detail === 'string' &&
+    driverError.detail.includes(column)
   );
 }
 
@@ -46,7 +48,9 @@ export class VideosRepository {
     private readonly repository: Repository<Video>,
   ) {}
 
-  async createDraftWithUniqueSlug(input: CreateDraftVideoInput): Promise<Video> {
+  async createDraftWithUniqueSlug(
+    input: CreateDraftVideoInput,
+  ): Promise<Video> {
     for (let attempt = 0; attempt <= MAX_SLUG_RETRIES; attempt++) {
       const slug = generateSlug();
       try {
@@ -120,14 +124,16 @@ export class VideosRepository {
     videoId: string,
     result: VideoProcessingResult,
   ): Promise<void> {
-    await this.repository.update(videoId, {
+    // TypeORM's QueryDeepPartialEntity mistreats a plain Record<string, unknown>
+    // jsonb value as a nested entity partial — cast the payload at the update
+    // boundary via TypeORM's own partial-entity type instead of `any`.
+    const patch: QueryDeepPartialEntity<Video> = {
       status: VideoStatus.READY,
       duration_seconds: result.duration_seconds,
-      // TypeORM's QueryDeepPartialEntity mistreats a plain Record<string, unknown>
-      // jsonb value as a nested entity partial — cast at the update boundary.
-      metadata: result.metadata as any,
+      metadata: result.metadata,
       thumbnail_key: result.thumbnail_key,
-    });
+    };
+    await this.repository.update(videoId, patch);
   }
 
   async markError(videoId: string, errorReason: string): Promise<void> {
