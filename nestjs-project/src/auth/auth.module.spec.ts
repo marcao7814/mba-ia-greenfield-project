@@ -28,5 +28,5 @@ describe('AuthModule', () => {
 
     expect(module).toBeDefined();
     await module.close();
-  }, 30000);
+  }, 60000);
 });

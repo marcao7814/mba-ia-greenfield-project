@@ -125,12 +125,12 @@ export class VideosRepository {
     result: VideoProcessingResult,
   ): Promise<void> {
     // TypeORM's QueryDeepPartialEntity mistreats a plain Record<string, unknown>
-    // jsonb value as a nested entity partial — cast the payload at the update
-    // boundary via TypeORM's own partial-entity type instead of `any`.
+    // jsonb value as a nested entity partial — cast just that field to the
+    // exact type update() expects for it, instead of widening to `any`.
     const patch: QueryDeepPartialEntity<Video> = {
       status: VideoStatus.READY,
       duration_seconds: result.duration_seconds,
-      metadata: result.metadata,
+      metadata: result.metadata as QueryDeepPartialEntity<Video>['metadata'],
       thumbnail_key: result.thumbnail_key,
     };
     await this.repository.update(videoId, patch);
