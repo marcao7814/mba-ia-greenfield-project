@@ -23,8 +23,15 @@ See `docs/diagrams/software-arch.mermaid` for the full diagram. Key containers:
 - **Video Worker** (FFmpeg) → consumes jobs from queue, processes videos, updates DB and storage
 - **Database** (PostgreSQL) → users, channels, videos, comments, likes
 - **Object Storage** (S3/MinIO) → video files and thumbnails
-- **Message Queue** (TBD) → video processing job queue
+- **Message Queue** (Redis/BullMQ) → video processing job queue (`video-processing`)
 - **Email Service** (SMTP) → account confirmation and password recovery
+
+## Videos (Phase 03)
+
+Video upload, processing, and delivery. See `nestjs-project/CLAUDE.md` → "Videos Module" for the endpoint list, storage/queue wiring, and worker details. Key artifacts:
+
+- `docs/decisions/technical-decisions-phase-03-videos.md` — queue choice (BullMQ), 10GB upload strategy (S3/MinIO multipart via presigned URLs), FFmpeg processing, status lifecycle, streaming/download strategy
+- `docs/phases/phase-03-videos/` — context, validation (clean), plan (`phase-03-videos.md`, SI-03.1–SI-03.12), library refs, progress
 
 ## Docker Networking
 

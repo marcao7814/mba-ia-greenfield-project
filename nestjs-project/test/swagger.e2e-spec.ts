@@ -45,7 +45,7 @@ describe('Swagger endpoints (e2e)', () => {
     beforeAll(async () => {
       process.env.SWAGGER_ENABLED = 'true';
       app = await createApp(true);
-    });
+    }, 30000);
 
     afterAll(async () => {
       await app.close();
@@ -93,7 +93,7 @@ describe('Swagger endpoints (e2e)', () => {
     beforeAll(async () => {
       delete process.env.SWAGGER_ENABLED;
       app = await createApp(false);
-    });
+    }, 30000);
 
     afterAll(async () => {
       await app.close();

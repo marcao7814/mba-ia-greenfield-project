@@ -24,6 +24,12 @@ export function createTestDataSource(
 }
 
 export async function cleanAllTables(dataSource: DataSource): Promise<void> {
+  const hasVideos = dataSource.entityMetadatas.some(
+    (metadata) => metadata.tableName === 'videos',
+  );
+  if (hasVideos) {
+    await dataSource.query('DELETE FROM "videos"');
+  }
   await dataSource.query('DELETE FROM "refresh_tokens"');
   await dataSource.query('DELETE FROM "verification_tokens"');
   await dataSource.query('DELETE FROM "channels"');
